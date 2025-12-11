@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>欢喜批量机器人 V2</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- 本地 ethers.js（确保同目录下有 ethers.min.js） -->
+  <script src="./ethers.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%);
+      color: #e5e7eb;
+    }
+    a { color: #38bdf8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #9ca3af;
+    }
+    .pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid rgba(148,163,184,0.4);
+      background: rgba(15,23,42,0.7);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn {
+      border-radius: 999px;
+      padding: 8px 18px;
+      background: linear-gradient(to right, #22c55e, #16a34a);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 10px 25px rgba(34,197,94,0.35);
+    }
+    .btn:hover { filter: brightness(1.05); }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .btn-secondary {
+      border-radius: 999px;
+      padding: 6px 14px;
+      background: rgba(31,41,55,0.9);
+      color: #e5e7eb;
+      border: 1px solid rgba(75,85,99,0.8);
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .btn-secondary:hover { filter: brightness(1.08); }
+    .status-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 12px;
+      margin-bottom: 20px;
+    }
+    .status-pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.85);
+      border: 1px solid rgba(55,65,81,0.8);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-pill span.label {
+      color: #9ca3af;
+    }
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.1fr);
+      gap: 20px;
+    }
+    @media (max-width: 900px) {
+      main { grid-template-columns: minmax(0,1fr); }
+    }
+    h2 {
+      font-size: 18px;
+      margin: 12px 0 12px;
+    }
+    h3 {
+      font-size: 15px;
+      margin: 8px 0 8px;
+    }
+    .card {
+      background: rgba(15,23,42,0.92);
+      border-radius: 18px;
+      padding: 16px 16px 18px;
+      border: 1px solid rgba(75,85,99,0.7);
+      box-shadow: 0 18px 40px rgba(15,23,42,0.9);
+      margin-bottom: 14px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .badge {
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid rgba(148,163,184,0.5);
+      color: #9ca3af;
+    }
+    .field {
+      margin-bottom: 10px;
+    }
+    .field label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 4px;
+      color: #d1d5db;
+    }
+    .field small {
+      color: #9ca3af;
+      font-size: 11px;
+    }
+    input[type="text"],
+    input[type="number"],
+    textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(55,65,81,0.9);
+      background: rgba(15,23,42,0.9);
+      color: #e5e7eb;
+      font-size: 13px;
+      resize: vertical;
+    }
+    textarea {
+      min-height: 76px;
+      max-height: 180px;
+    }
+    input:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.3);
+    }
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      font-size: 11px;
+      color: #9ca3af;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .card-footer .gas-hint {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .hint {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    .error {
+      color: #fca5a5;
+      font-size: 12px;
+      margin-top: 4px;
+      white-space: pre-wrap;
+    }
+    .success {
+      color: #4ade80;
+      font-size: 12px;
+      margin-top: 4px;
+      white-space: pre-wrap;
+    }
+    code {
+      font-size: 11px;
+      background: rgba(15,23,42,0.9);
+      border-radius: 6px;
+      padding: 2px 6px;
+    }
+    .section-divider {
+      margin-top: 12px;
+      margin-bottom: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <div class="title">
+        🧧 欢喜批量机器人 V2
+        <span class="pill">BNB Chain · 批量买入 & 空投助手</span>
+      </div>
+      <div class="subtitle">
+        连接 MetaMask 后，选择支付方式和模式，一次性给多地址买入目标代币 / 空投。仅合约 Owner 可操作。
+      </div>
+    </div>
+    <div>
+      <button id="connectBtn" class="btn">
+        <span>连接 MetaMask</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="status-bar">
+    <div class="status-pill" id="addrStatus">
+      <span class="label">钱包地址</span>
+      <span id="walletAddress">未连接</span>
+    </div>
+    <div class="status-pill">
+      <span class="label">网络</span>
+      <span id="networkName">-</span>
+    </div>
+    <div class="status-pill">
+      <span class="label">合约</span>
+      <span>
+        <a href="https://bscscan.com/address/0xe39433810EC31f6F7d189079A1F334c4A08E9530#writeContract" target="_blank">
+          0xe394...E9530
+        </a>
+      </span>
+    </div>
+    <div class="status-pill" id="ownerStatus">
+      <span class="label">权限</span>
+      <span id="ownerFlag">未知</span>
+    </div>
+    <div class="status-pill">
+      <span class="label">运行状态</span>
+      <span id="pausedFlag">-</span>
+    </div>
+    <div class="status-pill">
+      <span class="label">合约 BNB 余额</span>
+      <span id="contractBNBBalance">-</span>
+    </div>
+  </div>
+
+  <main>
+    <!-- 左侧：普通购买 -->
+    <section>
+      <h2>普通购买模式</h2>
+      <p class="hint">
+        固定每个地址花多少钱，按顺序为多个地址买入目标代币。<br>
+        所有金额都用正常写法，例如 <code>0.01</code>、<code>100</code>，前端自动加 0。
+      </p>
+
+      <!-- BNB 普通购买 -->
+      <div class="card">
+        <div class="card-header">
+          <h3>用 BNB 普通购买</h3>
+          <span class="badge">支付方式：原生 BNB</span>
+        </div>
+        <form id="form-bnb-normal">
+          <div class="field">
+            <label>
+              <span>目标代币地址 (tokenToBuy)</span>
+            </label>
+            <input type="text" id="bnbNormal-token" placeholder="例如：0x... 目标代币合约地址" required />
+          </div>
+
+          <div class="field">
+            <label>
+              <span>每个地址花费 BNB 数量</span>
+              <small>自动转换为 wei，无需手动加 18 个 0</small>
+            </label>
+            <input type="number" step="0.000000000000000001" min="0" id="bnbNormal-per"
+                   placeholder="例如：0.01" required />
+          </div>
+
+          <div class="field">
+            <label>
+              <span>收币地址列表 (一行一个地址)</span>
+              <small>建议先用极小金额测试</small>
+            </label>
+            <textarea id="bnbNormal-recipients"
+                      placeholder="0x地址1
+0x地址2
+0x地址3"></textarea>
+          </div>
+
+          <div id="bnbNormal-msg"></div>
+
+          <div class="card-footer">
+            <div class="gas-hint">
+              💡 总 BNB = 每个地址花费 × 地址数量（从合约余额中扣）
+            </div>
+            <button type="submit" class="btn" id="bnbNormal-submit">发送交易</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 默认支付代币普通购买 -->
+      <div class="card">
+        <div class="card-header">
+          <h3>用默认支付代币普通购买</h3>
+          <span class="badge">支付方式：payToken（默认 USDT）</span>
+        </div>
+        <div class="hint">
+          默认支付代币可以在合约里用 <code>setPayToken</code> 调整。<br>
+          使用前请先把该代币转入合约地址，并确保已授权给路由。
+        </div>
+        <form id="form-pay-normal">
+          <div class="field">
+            <label>
+              <span>目标代币地址 (tokenToBuy)</span>
+            </label>
+            <input type="text" id="payNormal-token" placeholder="0x... 目标代币合约地址" required />
+          </div>
+
+          <div class="field">
+            <label>
+              <span>每个地址花费支付代币数量</span>
+              <small>按 payToken 的 decimals 自动转换</small>
+            </label>
+            <input type="number" step="0.00000001" min="0" id="payNormal-per"
+                   placeholder="例如：100（代表 100 USDT）" required />
+          </div>
+
+          <div class="field">
+            <label>
+              <span>收币地址列表 (一行一个地址)</span>
+            </label>
+            <textarea id="payNormal-recipients"
+                      placeholder="0x地址1
+0x地址2"></textarea>
+          </div>
+
+          <div id="payNormal-msg"></div>
+
+          <div class="card-footer">
+            <div class="gas-hint">
+              💡 总花费 = 每个地址金额 × 地址数量（从合约持有的 payToken 中扣）
+            </div>
+            <button type="submit" class="btn" id="payNormal-submit">发送交易</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 自定义支付代币普通购买 -->
+      <div class="card">
+        <div class="card-header">
+          <h3>用自定义代币普通购买</h3>
+          <span class="badge">支付方式：任意 ERC20 代币</span>
+        </div>
+        <div class="hint">
+          将你想用的支付代币（如 USD1、某 Meme 币）转入合约地址，然后在下方输入其合约地址。
+        </div>
+        <form id="form-custom-normal">
+          <div class="field">
+            <label>
+              <span>支付代币地址 (payTokenAddr)</span>
+            </label>
+            <input type="text" id="customNormal-payToken" placeholder="0x... 支付代币合约地址" required />
+          </div>
+
+          <div class="field">
+            <label>
+              <span>目标代币地址 (tokenToBuy)</span>
+            </label>
+            <input type="text" id="customNormal-token" placeholder="0x... 目标代币合约地址" required />
+          </div>
+
+          <div class="field">
+            <label>
+              <span>每个地址花费支付代币数量</span>
+              <small>按支付代币 decimals 自动转换</small>
+            </label>
+            <input type="number" step="0.00000001" min="0" id="customNormal-per"
+                   placeholder="例如：50" required />
+          </div>
+
+          <div class="field">
+            <label>
+              <span>收币地址列表 (一行一个地址)</span>
+            </label>
+            <textarea id="customNormal-recipients"
+                      placeholder="0x地址1
+0x地址2"></textarea>
+          </div>
+
+          <div id="customNormal-msg"></div>
+
+          <div class="card-footer">
+            <div class="gas-hint">
+              💡 如遇授权不足，可在合约页先调用 <code>forceApprove</code>。
+            </div>
+            <button type="submit" class="btn" id="customNormal-submit">发送交易</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- 右侧：限额购买 + 管理功能 -->
+    <section>
+      <h2>限额购买模式</h2>
+      <p class="hint">
+        每个地址设置「最大花费金额 + 目标买入数量」。<br>
+        若金额足够则按照目标买入，金额不足则用最大可用金额全力买。
+      </p>
+
+      <!-- BNB 限额购买 -->
+      <div class="card">
+        <div class="card-header">
+          <h3>BNB 限额购买</h3>
+          <span class="badge">支付方式：BNB · 模式：限额</span>
+        </div>
+        <form id="form-bnb-limited">
+          <div class="field">
+            <label>
+              <span>目标代币地址 (tokenToBuy)</span>
+            </label>
+            <input type="text" id="bnbLimited-token" placeholder="0x... 目标代币合约地址" required />
+          </div>
+
+          <div class="field">
+            <label>
+              <span>地址配置列表</span>
+              <small>一行一个：地址, 最大花费BNB, 目标买入数量（个）</small>
+            </label>
+            <textarea id="bnbLimited-params"
+                      placeholder="0x地址1, 0.05, 1000
+0x地址2, 0.02, 500
+0x地址3, 0.01, 0  （目标填 0 表示全力买）"></textarea>
+          </div>
+
+          <div id="bnbLimited-msg"></div>
+
+          <div class="card-footer">
+            <div class="gas-hint">
+              💡 本次交易附带的 BNB 建议 ≥ 所有“最大花费BNB”之和
+            </div>
+            <button type="submit" class="btn" id="bnbLimited-submit">发送交易</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 默认支付代币限额购买 -->
+      <div class="card">
+        <div class="card-header">
+          <h3>默认支付代币限额购买</h3>
+          <span class="badge">支付方式：payToken · 模式：限额</span>
+        </div>
+        <form id="form-pay-limited">
+          <div class="field">
+            <label>
+              <span>目标代币地址 (tokenToBuy)</span>
+            </label>
+            <input type="text" id="payLimited-token" placeholder="0x... 目标代币合约地址" required />
+          </div>
+
+          <div class="field">
+            <label>
+              <span>地址配置列表</span>
+              <small>一行一个：地址, 最大花费支付币, 目标买入数量</small>
+            </label>
+            <textarea id="payLimited-params"
+                      placeholder="0x地址1, 100, 1000
+0x地址2, 50, 500"></textarea>
+          </div>
+
+          <div id="payLimited-msg"></div>
+
+          <div class="card-footer">
+            <div class="gas-hint">
+              💡 总消耗从合约持有的 payToken 中扣除
+            </div>
+            <button type="submit" class="btn" id="payLimited-submit">发送交易</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 自定义代币限额购买（如果合约中已加入） -->
+      <div class="card">
+        <div class="card-header">
+          <h3>自定义代币限额购买</h3>
+          <span class="badge">支付方式：自定义 Token · 模式：限额</span>
+        </div>
+        <form id="form-custom-limited">
+          <div class="field">
+            <label>
+              <span>支付代币地址 (payTokenAddr)</span>
+            </label>
+            <input type="text" id="customLimited-payToken" placeholder="0x... 支付代币合约地址" required />
+          </div>
+
+          <div class="field">
+            <label>
+              <span>目标代币地址 (tokenToBuy)</span>
+            </label>
+            <input type="text" id="customLimited-token" placeholder="0x... 目标代币合约地址" required />
+          </div>
+
+          <div class="field">
+            <label>
+              <span>地址配置列表</span>
+              <small>一行一个：地址, 最大花费支付币, 目标买入数量</small>
+            </label>
+            <textarea id="customLimited-params"
+                      placeholder="0x地址1, 100, 1000
+0x地址2, 50, 500"></textarea>
+          </div>
+
+          <div id="customLimited-msg"></div>
+
+          <div class="card-footer">
+            <div class="gas-hint">
+              💡 如遇授权不足，可在合约页面对该代币先调用 forceApprove
+            </div>
+            <button type="submit" class="btn" id="customLimited-submit">发送交易</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 管理与工具 -->
+      <h2>管理与工具</h2>
+
+      <!-- 安全开关 -->
+      <div class="card">
+        <div class="card-header">
+          <h3>安全开关（暂停 / 恢复）</h3>
+          <span class="badge">仅 Owner 可操作</span>
+        </div>
+        <div class="hint" id="pausedStateText">当前状态：未知</div>
+        <div id="pause-msg"></div>
+        <div class="card-footer">
+          <div class="gas-hint">
+            ⚠️ 暂停后，所有买入 / 空投函数都会拒绝执行，但依然可以提现。
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button class="btn-secondary" id="pause-btn">暂停所有购买</button>
+            <button class="btn-secondary" id="unpause-btn">恢复购买</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 批量空投 BNB -->
+      <div class="card">
+        <div class="card-header">
+          <h3>批量空投 BNB</h3>
+          <span class="badge">从合约余额中发放</span>
+        </div>
+        <div class="hint">
+          按固定 BNB 金额空投给多个地址，金额从合约 BNB 余额中扣除。
+        </div>
+        <form id="form-airdrop-bnb">
+          <div class="field">
+            <label>
+              <span>每个地址空投 BNB 数量</span>
+              <small>例如：0.005</small>
+            </label>
+            <input type="number" step="0.000000000000000001" min="0" id="airdrop-bnb-per"
+                   placeholder="例如：0.005" required />
+          </div>
+          <div class="field">
+            <label>
+              <span>地址列表（一行一个地址）</span>
+            </label>
+            <textarea id="airdrop-bnb-recipients"
+                      placeholder="0x地址1
+0x地址2"></textarea>
+          </div>
+
+          <div id="airdrop-bnb-msg"></div>
+
+          <div class="card-footer">
+            <div class="gas-hint">
+              💡 总消耗 = 每个地址 BNB × 地址数量
+            </div>
+            <button type="submit" class="btn" id="airdrop-bnb-submit">执行空投</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 批量空投 Token（等额） + 提现 -->
+      <div class="card">
+        <div class="card-header">
+          <h3>批量空投 Token & 提现</h3>
+          <span class="badge">Token 空投 / 提现工具</span>
+        </div>
+
+        <div class="section-divider">批量空投 Token（等额）</div>
+        <div class="hint">
+          将指定 Token 等额空投给多个地址。Token 需提前转入合约。
+        </div>
+        <form id="form-airdrop-token">
+          <div class="field">
+            <label>
+              <span>Token 地址</span>
+            </label>
+            <input type="text" id="airdrop-token-token" placeholder="0x... Token 合约地址" />
+          </div>
+          <div class="field">
+            <label>
+              <span>每个地址空投数量</span>
+              <small>按该 Token 的 decimals 自动换算</small>
+            </label>
+            <input type="number" step="0.00000001" min="0" id="airdrop-token-per"
+                   placeholder="例如：100（代表 100 个）" />
+          </div>
+          <div class="field">
+            <label>
+              <span>地址列表（一行一个地址）</span>
+            </label>
+            <textarea id="airdrop-token-recipients"
+                      placeholder="0x地址1
+0x地址2"></textarea>
+          </div>
+          <div id="airdrop-token-msg"></div>
+
+          <div class="card-footer">
+            <div class="gas-hint">
+              💡 总消耗 = 每个地址数量 × 地址数，从合约持有 Token 中扣。
+            </div>
+            <button type="submit" class="btn" id="airdrop-token-submit">执行空投</button>
+          </div>
+        </form>
+
+        <div class="section-divider">提现 BNB / Token</div>
+        <div class="hint">
+          当前合约 BNB 余额：<span id="contractBNBBalance2">-</span>
+        </div>
+        <form id="form-withdraw-bnb">
+          <div class="field">
+            <label>
+              <span>提取 BNB 到地址</span>
+            </label>
+            <input type="text" id="withdraw-bnb-to" placeholder="0x... 接收地址" />
+          </div>
+          <div class="field">
+            <label>
+              <span>提取 BNB 数量</span>
+              <small>如果大于余额，合约会全部提走</small>
+            </label>
+            <input type="number" step="0.000000000000000001" min="0" id="withdraw-bnb-amount"
+                   placeholder="例如：0.1" />
+          </div>
+        </form>
+
+        <form id="form-withdraw-token">
+          <div class="field">
+            <label>
+              <span>Token 地址</span>
+            </label>
+            <input type="text" id="withdraw-token-token" placeholder="0x... Token 合约地址" />
+          </div>
+          <div class="field">
+            <label>
+              <span>提取到地址</span>
+            </label>
+            <input type="text" id="withdraw-token-to" placeholder="0x... 接收地址" />
+          </div>
+          <div class="field">
+            <label>
+              <span>提取 Token 数量</span>
+              <small>正常写数量（例如：100）</small>
+            </label>
+            <input type="number" step="0.00000001" min="0" id="withdraw-token-amount"
+                   placeholder="例如：100" />
+          </div>
+        </form>
+
+        <div id="withdraw-msg"></div>
+
+        <div class="card-footer">
+          <div class="gas-hint">
+            💡 建议先用「查询余额」确认合约持有的 Token 数量。
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button class="btn-secondary" id="withdraw-bnb-submit">提取 BNB</button>
+            <button class="btn-secondary" id="withdraw-token-check">查询 Token 余额</button>
+            <button class="btn-secondary" id="withdraw-token-submit">提取 Token</button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<script>
+  // ===== 基本配置 =====
+  const CONTRACT_ADDRESS = "0xe39433810EC31f6F7d189079A1F334c4A08E9530";
+
+  const CONTRACT_ABI = [
+    "function owner() view returns (address)",
+    "function payToken() view returns (address)",
+    "function paused() view returns (bool)",
+
+    "function pause()",
+    "function unpause()",
+
+    "function buyWithBNB(address tokenToBuy, uint256 bnbPerAddress, address[] calldata recipients) payable",
+    "function buyWithPayToken(address tokenToBuy, uint256 amountPerAddress, address[] calldata recipients)",
+    "function buyWithCustomToken(address payTokenAddr, address tokenToBuy, uint256 amountPerAddress, address[] calldata recipients)",
+
+    "function limitedBuyWithBNB(address tokenToBuy, (address recipient,uint256 maxPayAmount,uint256 targetBuyAmount)[] calldata params) payable",
+    "function limitedBuyWithPayToken(address tokenToBuy, (address recipient,uint256 maxPayAmount,uint256 targetBuyAmount)[] calldata params)",
+    "function limitedBuyWithCustomToken(address payTokenAddr, address tokenToBuy, (address recipient,uint256 maxPayAmount,uint256 targetBuyAmount)[] calldata params)",
+
+    "function airdropBNB(uint256 amountPerAddress, address[] calldata recipients)",
+    "function airdropTokenEqual(address token, uint256 amountPerAddress, address[] calldata recipients)",
+
+    "function withdrawBNB(address to, uint256 amount)",
+    "function withdrawToken(address token, address to, uint256 amount)"
+  ];
+
+  const ERC20_ABI = [
+    "function decimals() view returns (uint8)",
+    "function balanceOf(address account) view returns (uint256)"
+  ];
+
+  let provider;
+  let signer;
+  let contract;
+  let currentAccount;
+  let contractOwner;
+  let currentNetwork;
+
+  const connectBtn = document.getElementById("connectBtn");
+  const walletAddressSpan = document.getElementById("walletAddress");
+  const networkNameSpan = document.getElementById("networkName");
+  const ownerFlagSpan = document.getElementById("ownerFlag");
+  const pausedFlagSpan = document.getElementById("pausedFlag");
+  const contractBNBBalanceSpan = document.getElementById("contractBNBBalance");
+  const contractBNBBalanceSpan2 = document.getElementById("contractBNBBalance2");
+  const pausedStateText = document.getElementById("pausedStateText");
+
+  function shortAddr(addr) {
+    if (!addr) return "-";
+    return addr.slice(0, 6) + "..." + addr.slice(-4);
+  }
+
+  function setMessage(el, type, msg) {
+    el.innerHTML = "";
+    if (!msg) return;
+    const div = document.createElement("div");
+    div.className = type === "error" ? "error" : "success";
+    div.textContent = msg;
+    el.appendChild(div);
+  }
+
+  function parseAddressList(text) {
+    return text
+      .split(/\n|,/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+  }
+
+  function parseLimitedParams(text) {
+    const lines = text.split(/\n+/);
+    const rows = [];
+    for (let line of lines) {
+      if (!line.trim()) continue;
+      const parts = line.split(",").map(p => p.trim()).filter(Boolean);
+      if (parts.length < 3) {
+        throw new Error("限额配置行格式错误，请使用：地址, 最大花费, 目标数量");
+      }
+      rows.push({
+        addr: parts[0],
+        maxPay: parts[1],
+        target: parts[2]
+      });
+    }
+    if (rows.length === 0) {
+      throw new Error("请至少填写一行地址配置。");
+    }
+    return rows;
+  }
+
+  async function getTokenDecimals(tokenAddr) {
+    const token = new ethers.Contract(tokenAddr, ERC20_ABI, provider);
+    return await token.decimals();
+  }
+
+  async function getTokenBalance(tokenAddr) {
+    const token = new ethers.Contract(tokenAddr, ERC20_ABI, provider);
+    return await token.balanceOf(CONTRACT_ADDRESS);
+  }
+
+  async function refreshContractStatus() {
+    if (!provider || !contract) return;
+    try {
+      const [network, ownerAddr, pausedVal, bnbBal] = await Promise.all([
+        provider.getNetwork(),
+        contract.owner(),
+        contract.paused(),
+        provider.getBalance(CONTRACT_ADDRESS)
+      ]);
+      currentNetwork = network;
+      contractOwner = ownerAddr;
+
+      networkNameSpan.textContent = network.name + " (" + network.chainId + ")";
+      const isOwner =
+        currentAccount &&
+        contractOwner &&
+        currentAccount.toLowerCase() === contractOwner.toLowerCase();
+
+      ownerFlagSpan.textContent = isOwner
+        ? "当前地址为合约 Owner"
+        : "当前地址不是 Owner（无法调用 onlyOwner 函数）";
+      ownerFlagSpan.style.color = isOwner ? "#4ade80" : "#f97316";
+
+      pausedFlagSpan.textContent = pausedVal ? "已暂停（无法买入 / 空投）" : "运行中";
+      pausedFlagSpan.style.color = pausedVal ? "#f97316" : "#4ade80";
+      pausedStateText.textContent = pausedVal ? "当前状态：已暂停" : "当前状态：运行中";
+
+      const bnbStr = ethers.utils.formatEther(bnbBal) + " BNB";
+      contractBNBBalanceSpan.textContent = bnbStr;
+      contractBNBBalanceSpan2.textContent = bnbStr;
+
+      const pauseBtn = document.getElementById("pause-btn");
+      const unpauseBtn = document.getElementById("unpause-btn");
+      if (pauseBtn && unpauseBtn) {
+        pauseBtn.disabled = !isOwner || pausedVal;
+        unpauseBtn.disabled = !isOwner || !pausedVal;
+      }
+    } catch (err) {
+      console.error("refreshContractStatus error:", err);
+    }
+  }
+
+  async function connectWallet() {
+    if (!window.ethereum) {
+      alert("未检测到 MetaMask，请先安装浏览器钱包。");
+      return;
+    }
+    try {
+      connectBtn.disabled = true;
+      connectBtn.textContent = "连接中...";
+
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      signer = provider.getSigner();
+      currentAccount = await signer.getAddress();
+
+      walletAddressSpan.textContent = shortAddr(currentAccount);
+
+      currentNetwork = await provider.getNetwork();
+      if (currentNetwork.chainId !== 56) {
+        alert("当前网络不是 BNB Chain 主网（chainId=56）。请在 MetaMask 中切换到 BNB Smart Chain Mainnet。");
+      }
+
+      contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+      await refreshContractStatus();
+
+      connectBtn.textContent = "已连接";
+    } catch (err) {
+      console.error(err);
+      alert("连接失败：" + (err.message || err));
+      connectBtn.textContent = "连接 MetaMask";
+    } finally {
+      connectBtn.disabled = false;
+    }
+  }
+
+  connectBtn.addEventListener("click", connectWallet);
+
+  // ===== 表单绑定：普通 BNB 购买 =====
+  document.getElementById("form-bnb-normal").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgBox = document.getElementById("bnbNormal-msg");
+    setMessage(msgBox, "", "");
+    try {
+      if (!contract) throw new Error("请先连接 MetaMask。");
+      const tokenToBuy = document.getElementById("bnbNormal-token").value.trim();
+      const perStr = document.getElementById("bnbNormal-per").value.trim();
+      const recText = document.getElementById("bnbNormal-recipients").value.trim();
+      const recipients = parseAddressList(recText);
+
+      if (!tokenToBuy || recipients.length === 0) {
+        throw new Error("请填写目标代币地址和至少一个收币地址。");
+      }
+
+      const perBNB = ethers.utils.parseEther(perStr || "0");
+      if (perBNB.lte(0)) throw new Error("每个地址花费必须大于 0。");
+
+      const totalBNB = perBNB.mul(recipients.length);
+
+      setMessage(
+        msgBox,
+        "success",
+        "准备发送交易：\n每个地址 " +
+          perStr +
+          " BNB × " +
+          recipients.length +
+          " 个地址 = 总计 " +
+          ethers.utils.formatEther(totalBNB) +
+          " BNB"
+      );
+
+      const tx = await contract.buyWithBNB(tokenToBuy, perBNB, recipients, {
+        value: totalBNB
+      });
+      setMessage(msgBox, "success", "交易已发送，等待确认中...\nTX: " + tx.hash);
+      await tx.wait();
+      setMessage(msgBox, "success", "交易已确认 ✅\nTX: " + tx.hash);
+      await refreshContractStatus();
+    } catch (err) {
+      console.error(err);
+      setMessage(msgBox, "error", "交易失败：\n" + (err.data?.message || err.message || err));
+    }
+  });
+
+  // ===== 默认支付代币普通购买 =====
+  document.getElementById("form-pay-normal").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgBox = document.getElementById("payNormal-msg");
+    setMessage(msgBox, "", "");
+    try {
+      if (!contract) throw new Error("请先连接 MetaMask。");
+
+      const tokenToBuy = document.getElementById("payNormal-token").value.trim();
+      const perStr = document.getElementById("payNormal-per").value.trim();
+      const recText = document.getElementById("payNormal-recipients").value.trim();
+      const recipients = parseAddressList(recText);
+      if (!tokenToBuy || recipients.length === 0) {
+        throw new Error("请填写目标代币地址和至少一个收币地址。");
+      }
+
+      const payTokenAddr = await contract.payToken();
+      const decimals = await getTokenDecimals(payTokenAddr);
+      const perAmount = ethers.utils.parseUnits(perStr || "0", decimals);
+      if (perAmount.lte(0)) throw new Error("每个地址花费必须大于 0。");
+
+      setMessage(
+        msgBox,
+        "success",
+        "将使用 payToken(" +
+          shortAddr(payTokenAddr) +
+          ")：每个地址 " +
+          perStr +
+          "，共 " +
+          recipients.length +
+          " 个地址。"
+      );
+
+      const tx = await contract.buyWithPayToken(tokenToBuy, perAmount, recipients);
+      setMessage(msgBox, "success", "交易已发送，等待确认中...\nTX: " + tx.hash);
+      await tx.wait();
+      setMessage(msgBox, "success", "交易已确认 ✅\nTX: " + tx.hash);
+    } catch (err) {
+      console.error(err);
+      setMessage(msgBox, "error", "交易失败：\n" + (err.data?.message || err.message || err));
+    }
+  });
+
+  // ===== 自定义支付代币普通购买 =====
+  document.getElementById("form-custom-normal").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgBox = document.getElementById("customNormal-msg");
+    setMessage(msgBox, "", "");
+    try {
+      if (!contract) throw new Error("请先连接 MetaMask。");
+
+      const payTokenAddr = document.getElementById("customNormal-payToken").value.trim();
+      const tokenToBuy = document.getElementById("customNormal-token").value.trim();
+      const perStr = document.getElementById("customNormal-per").value.trim();
+      const recText = document.getElementById("customNormal-recipients").value.trim();
+      const recipients = parseAddressList(recText);
+
+      if (!payTokenAddr || !tokenToBuy || recipients.length === 0) {
+        throw new Error("请填写支付代币、目标代币和收币地址。");
+      }
+
+      const decimals = await getTokenDecimals(payTokenAddr);
+      const perAmount = ethers.utils.parseUnits(perStr || "0", decimals);
+      if (perAmount.lte(0)) throw new Error("每个地址花费必须大于 0。");
+
+      setMessage(
+        msgBox,
+        "success",
+        "使用 " +
+          shortAddr(payTokenAddr) +
+          "：每个地址 " +
+          perStr +
+          "，共 " +
+          recipients.length +
+          " 个地址。"
+      );
+
+      const tx = await contract.buyWithCustomToken(payTokenAddr, tokenToBuy, perAmount, recipients);
+      setMessage(msgBox, "success", "交易已发送，等待确认中...\nTX: " + tx.hash);
+      await tx.wait();
+      setMessage(msgBox, "success", "交易已确认 ✅\nTX: " + tx.hash);
+    } catch (err) {
+      console.error(err);
+      setMessage(msgBox, "error", "交易失败：\n" + (err.data?.message || err.message || err));
+    }
+  });
+
+  // ===== BNB 限额购买 =====
+  document.getElementById("form-bnb-limited").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgBox = document.getElementById("bnbLimited-msg");
+    setMessage(msgBox, "", "");
+    try {
+      if (!contract) throw new Error("请先连接 MetaMask。");
+      const tokenToBuy = document.getElementById("bnbLimited-token").value.trim();
+      const paramsText = document.getElementById("bnbLimited-params").value.trim();
+      if (!tokenToBuy) throw new Error("请填写目标代币地址。");
+
+      const rows = parseLimitedParams(paramsText);
+      const tokenDecimals = await getTokenDecimals(tokenToBuy);
+
+      const params = [];
+      let totalMaxPay = ethers.BigNumber.from(0);
+      rows.forEach((row) => {
+        const recipient = row.addr;
+        const maxPayWei = ethers.utils.parseEther(row.maxPay || "0");
+        const targetAmt =
+          row.target && row.target !== "0"
+            ? ethers.utils.parseUnits(row.target, tokenDecimals)
+            : ethers.BigNumber.from(0);
+
+        if (maxPayWei.lte(0)) {
+          throw new Error("最大花费必须大于 0（地址：" + recipient + "）。");
+        }
+        totalMaxPay = totalMaxPay.add(maxPayWei);
+        params.push({
+          recipient,
+          maxPayAmount: maxPayWei,
+          targetBuyAmount: targetAmt
+        });
+      });
+
+      setMessage(
+        msgBox,
+        "success",
+        "准备发送限额购买：共 " +
+          params.length +
+          " 个地址，总最大花费约 " +
+          ethers.utils.formatEther(totalMaxPay) +
+          " BNB。"
+      );
+
+      const tx = await contract.limitedBuyWithBNB(tokenToBuy, params, { value: totalMaxPay });
+      setMessage(msgBox, "success", "交易已发送，等待确认中...\nTX: " + tx.hash);
+      await tx.wait();
+      setMessage(msgBox, "success", "交易已确认 ✅\nTX: " + tx.hash);
+      await refreshContractStatus();
+    } catch (err) {
+      console.error(err);
+      setMessage(msgBox, "error", "交易失败：\n" + (err.data?.message || err.message || err));
+    }
+  });
+
+  // ===== 默认支付代币 限额购买 =====
+  document.getElementById("form-pay-limited").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgBox = document.getElementById("payLimited-msg");
+    setMessage(msgBox, "", "");
+    try {
+      if (!contract) throw new Error("请先连接 MetaMask。");
+
+      const tokenToBuy = document.getElementById("payLimited-token").value.trim();
+      const paramsText = document.getElementById("payLimited-params").value.trim();
+      if (!tokenToBuy) throw new Error("请填写目标代币地址。");
+
+      const rows = parseLimitedParams(paramsText);
+      const payTokenAddr = await contract.payToken();
+      const payDecimals = await getTokenDecimals(payTokenAddr);
+      const tokenDecimals = await getTokenDecimals(tokenToBuy);
+
+      const params = [];
+      rows.forEach((row) => {
+        const recipient = row.addr;
+        const maxPay = ethers.utils.parseUnits(row.maxPay || "0", payDecimals);
+        const targetAmt =
+          row.target && row.target !== "0"
+            ? ethers.utils.parseUnits(row.target, tokenDecimals)
+            : ethers.BigNumber.from(0);
+        if (maxPay.lte(0)) {
+          throw new Error("最大花费必须大于 0（地址：" + recipient + "）。");
+        }
+        params.push({
+          recipient,
+          maxPayAmount: maxPay,
+          targetBuyAmount: targetAmt
+        });
+      });
+
+      setMessage(
+        msgBox,
+        "success",
+        "将使用 payToken(" +
+          shortAddr(payTokenAddr) +
+          ") 进行限额购买，地址数：" +
+          params.length
+      );
+
+      const tx = await contract.limitedBuyWithPayToken(tokenToBuy, params);
+      setMessage(msgBox, "success", "交易已发送，等待确认中...\nTX: " + tx.hash);
+      await tx.wait();
+      setMessage(msgBox, "success", "交易已确认 ✅\nTX: " + tx.hash);
+    } catch (err) {
+      console.error(err);
+      setMessage(msgBox, "error", "交易失败：\n" + (err.data?.message || err.message || err));
+    }
+  });
+
+  // ===== 自定义代币 限额购买（如果合约支持） =====
+  document.getElementById("form-custom-limited").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgBox = document.getElementById("customLimited-msg");
+    setMessage(msgBox, "", "");
+    try {
+      if (!contract) throw new Error("请先连接 MetaMask。");
+
+      const payTokenAddr = document.getElementById("customLimited-payToken").value.trim();
+      const tokenToBuy = document.getElementById("customLimited-token").value.trim();
+      const paramsText = document.getElementById("customLimited-params").value.trim();
+      if (!payTokenAddr || !tokenToBuy) throw new Error("请填写支付代币和目标代币地址。");
+
+      const rows = parseLimitedParams(paramsText);
+      const payDecimals = await getTokenDecimals(payTokenAddr);
+      const tokenDecimals = await getTokenDecimals(tokenToBuy);
+
+      const params = [];
+      rows.forEach((row) => {
+        const recipient = row.addr;
+        const maxPay = ethers.utils.parseUnits(row.maxPay || "0", payDecimals);
+        const targetAmt =
+          row.target && row.target !== "0"
+            ? ethers.utils.parseUnits(row.target, tokenDecimals)
+            : ethers.BigNumber.from(0);
+        if (maxPay.lte(0)) {
+          throw new Error("最大花费必须大于 0（地址：" + recipient + "）。");
+        }
+        params.push({
+          recipient,
+          maxPayAmount: maxPay,
+          targetBuyAmount: targetAmt
+        });
+      });
+
+      setMessage(
+        msgBox,
+        "success",
+        "使用自定义支付代币 " +
+          shortAddr(payTokenAddr) +
+          " 进行限额购买，地址数：" +
+          params.length
+      );
+
+      const tx = await contract.limitedBuyWithCustomToken(payTokenAddr, tokenToBuy, params);
+      setMessage(msgBox, "success", "交易已发送，等待确认中...\nTX: " + tx.hash);
+      await tx.wait();
+      setMessage(msgBox, "success", "交易已确认 ✅\nTX: " + tx.hash);
+    } catch (err) {
+      console.error(err);
+      setMessage(msgBox, "error", "交易失败（如果报 function not found，说明合约未加入此函数）：\n" + (err.data?.message || err.message || err));
+    }
+  });
+
+  // ===== 安全开关：暂停 / 恢复 =====
+  document.getElementById("pause-btn").addEventListener("click", async () => {
+    const msgBox = document.getElementById("pause-msg");
+    setMessage(msgBox, "", "");
+    try {
+      if (!contract) throw new Error("请先连接 MetaMask。");
+      const tx = await contract.pause();
+      setMessage(msgBox, "success", "暂停交易已发送，等待确认中...\nTX: " + tx.hash);
+      await tx.wait();
+      setMessage(msgBox, "success", "已暂停 ✅\nTX: " + tx.hash);
+      await refreshContractStatus();
+    } catch (err) {
+      console.error(err);
+      setMessage(msgBox, "error", "操作失败：\n" + (err.data?.message || err.message || err));
+    }
+  });
+
+  document.getElementById("unpause-btn").addEventListener("click", async () => {
+    const msgBox = document.getElementById("pause-msg");
+    setMessage(msgBox, "", "");
+    try {
+      if (!contract) throw new Error("请先连接 MetaMask。");
+      const tx = await contract.unpause();
+      setMessage(msgBox, "success", "恢复交易已发送，等待确认中...\nTX: " + tx.hash);
+      await tx.wait();
+      setMessage(msgBox, "success", "已恢复 ✅\nTX: " + tx.hash);
+      await refreshContractStatus();
+    } catch (err) {
+      console.error(err);
+      setMessage(msgBox, "error", "操作失败：\n" + (err.data?.message || err.message || err));
+    }
+  });
+
+  // ===== 批量空投 BNB =====
+  document.getElementById("form-airdrop-bnb").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgBox = document.getElementById("airdrop-bnb-msg");
+    setMessage(msgBox, "", "");
+    try {
+      if (!contract) throw new Error("请先连接 MetaMask。");
+
+      const perStr = document.getElementById("airdrop-bnb-per").value.trim();
+      const recText = document.getElementById("airdrop-bnb-recipients").value.trim();
+      const recipients = parseAddressList(recText);
+      if (recipients.length === 0) throw new Error("请至少填写一个地址。");
+
+      const perBNB = ethers.utils.parseEther(perStr || "0");
+      if (perBNB.lte(0)) throw new Error("每个地址空投数量必须大于 0。");
+
+      const totalBNB = perBNB.mul(recipients.length);
+      setMessage(
+        msgBox,
+        "success",
+        "准备空投：每个地址 " +
+          perStr +
+          " BNB × " +
+          recipients.length +
+          " 个地址 = 总计 " +
+          ethers.utils.formatEther(totalBNB) +
+          " BNB"
+      );
+
+      const tx = await contract.airdropBNB(perBNB, recipients);
+      setMessage(msgBox, "success", "空投交易已发送，等待确认中...\nTX: " + tx.hash);
+      await tx.wait();
+      setMessage(msgBox, "success", "空投已确认 ✅\nTX: " + tx.hash);
+      await refreshContractStatus();
+    } catch (err) {
+      console.error(err);
+      setMessage(msgBox, "error", "空投失败：\n" + (err.data?.message || err.message || err));
+    }
+  });
+
+  // ===== 批量空投 Token（等额） =====
+  document.getElementById("form-airdrop-token").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgBox = document.getElementById("airdrop-token-msg");
+    setMessage(msgBox, "", "");
+    try {
+      if (!contract) throw new Error("请先连接 MetaMask。");
+
+      const tokenAddr = document.getElementById("airdrop-token-token").value.trim();
+      const perStr = document.getElementById("airdrop-token-per").value.trim();
+      const recText = document.getElementById("airdrop-token-recipients").value.trim();
+      const recipients = parseAddressList(recText);
+
+      if (!tokenAddr) throw new Error("请填写 Token 地址。");
+      if (recipients.length === 0) throw new Error("请至少填写一个地址。");
+
+      const decimals = await getTokenDecimals(tokenAddr);
+      const perAmount = ethers.utils.parseUnits(perStr || "0", decimals);
+      if (perAmount.lte(0)) throw new Error("每个地址空投数量必须大于 0。");
+
+      setMessage(
+        msgBox,
+        "success",
+        "准备空投 Token：每个地址 " +
+          perStr +
+          " × " +
+          recipients.length +
+          " 个地址。"
+      );
+
+      const tx = await contract.airdropTokenEqual(tokenAddr, perAmount, recipients);
+      setMessage(msgBox, "success", "空投交易已发送，等待确认中...\nTX: " + tx.hash);
+      await tx.wait();
+      setMessage(msgBox, "success", "空投已确认 ✅\nTX: " + tx.hash);
+    } catch (err) {
+      console.error(err);
+      setMessage(msgBox, "error", "空投失败：\n" + (err.data?.message || err.message || err));
+    }
+  });
+
+  // ===== 提现 BNB =====
+  document.getElementById("withdraw-bnb-submit").addEventListener("click", async () => {
+    const msgBox = document.getElementById("withdraw-msg");
+    setMessage(msgBox, "", "");
+    try {
+      if (!contract) throw new Error("请先连接 MetaMask。");
+      const to = document.getElementById("withdraw-bnb-to").value.trim();
+      const amountStr = document.getElementById("withdraw-bnb-amount").value.trim();
+      if (!to) throw new Error("请填写接收地址。");
+      if (!amountStr) throw new Error("请填写提取 BNB 数量。");
+      const amountWei = ethers.utils.parseEther(amountStr);
+
+      const tx = await contract.withdrawBNB(to, amountWei);
+      setMessage(msgBox, "success", "提现 BNB 交易已发送，等待确认中...\nTX: " + tx.hash);
+      await tx.wait();
+      setMessage(msgBox, "success", "提现 BNB 已确认 ✅\nTX: " + tx.hash);
+      await refreshContractStatus();
+    } catch (err) {
+      console.error(err);
+      setMessage(msgBox, "error", "提现失败：\n" + (err.data?.message || err.message || err));
+    }
+  });
+
+  // ===== 查询 Token 余额 =====
+  document.getElementById("withdraw-token-check").addEventListener("click", async () => {
+    const msgBox = document.getElementById("withdraw-msg");
+    setMessage(msgBox, "", "");
+    try {
+      if (!provider) throw new Error("请先连接 MetaMask。");
+      const tokenAddr = document.getElementById("withdraw-token-token").value.trim();
+      if (!tokenAddr) throw new Error("请填写 Token 地址。");
+      const decimals = await getTokenDecimals(tokenAddr);
+      const bal = await getTokenBalance(tokenAddr);
+      const balFormatted = ethers.utils.formatUnits(bal, decimals);
+      setMessage(
+        msgBox,
+        "success",
+        "合约持有该 Token 余额约为：\n" + balFormatted + "（按 decimals = " + decimals + " 格式化）"
+      );
+    } catch (err) {
+      console.error(err);
+      setMessage(msgBox, "error", "查询失败：\n" + (err.data?.message || err.message || err));
+    }
+  });
+
+  // ===== 提现 Token =====
+  document.getElementById("withdraw-token-submit").addEventListener("click", async () => {
+    const msgBox = document.getElementById("withdraw-msg");
+    setMessage(msgBox, "", "");
+    try {
+      if (!contract) throw new Error("请先连接 MetaMask。");
+      const tokenAddr = document.getElementById("withdraw-token-token").value.trim();
+      const to = document.getElementById("withdraw-token-to").value.trim();
+      const amountStr = document.getElementById("withdraw-token-amount").value.trim();
+
+      if (!tokenAddr || !to || !amountStr) {
+        throw new Error("请填写 Token 地址、接收地址和提现数量。");
+      }
+
+      const decimals = await getTokenDecimals(tokenAddr);
+      const amount = ethers.utils.parseUnits(amountStr, decimals);
+
+      const tx = await contract.withdrawToken(tokenAddr, to, amount);
+      setMessage(msgBox, "success", "提现 Token 交易已发送，等待确认中...\nTX: " + tx.hash);
+      await tx.wait();
+      setMessage(msgBox, "success", "提现 Token 已确认 ✅\nTX: " + tx.hash);
+    } catch (err) {
+      console.error(err);
+      setMessage(msgBox, "error", "提现失败：\n" + (err.data?.message || err.message || err));
+    }
+  });
+
+</script>
+</body>
+</html>
